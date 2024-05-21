@@ -63,6 +63,12 @@ public class Game {
             case "startGame":
                 startGame();
                 break;
+            case "joinLobby":
+
+                System.out.println(clientMessage.getPlayerName()+" "+clientMessage.getLobbyId());
+                server.joinLobby(clientMessage.getLobbyId(), sender, clientMessage.getPlayerName());
+                System.out.println("Joining lobby");
+                break;
         }
     }
 
@@ -206,7 +212,6 @@ public class Game {
             ServerMessage serverMessage = new ServerMessage();
             serverMessage.setType("gameState");
             serverMessage.setGameState(gameState);
-
             String message = objectMapper.writeValueAsString(serverMessage);
             server.broadcast(message, lobbyId);
         } catch (IOException e) {
