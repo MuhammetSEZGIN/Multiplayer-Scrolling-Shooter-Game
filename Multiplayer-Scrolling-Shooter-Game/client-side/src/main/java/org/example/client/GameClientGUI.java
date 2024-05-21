@@ -86,9 +86,11 @@ public class GameClientGUI extends Application {
 
         ListView<String> lobbiesListView = new ListView<>();
         Button refreshButton = new Button("Refresh");
+//        lobbiesTextArea = new TextArea();
+//        lobbiesTextArea.setEditable(false);
+
         refreshButton.setOnAction(event -> {
             gameClient.requestAvailableLobbies();
-
         });
 
         Button joinButton = new Button("Join");
@@ -100,8 +102,14 @@ public class GameClientGUI extends Application {
         });
 
         gameClient.setLobbyUpdateCallback(lobbies -> {
-            Platform.runLater(() -> lobbiesListView.getItems().setAll(lobbies));
+            Platform.runLater(() -> {
+                System.out.println("Updating lobby list: " + lobbies); // Debugging line
+                lobbiesListView.getItems().setAll(lobbies);
+
+            });
         });
+
+
 
         root.getChildren().addAll(lobbiesListView, refreshButton, joinButton);
 
@@ -132,7 +140,6 @@ public class GameClientGUI extends Application {
 
         lobbyPlayersTextArea = new TextArea();
         lobbyPlayersTextArea.setEditable(false);
-
         Button startGameButton = new Button("Start Game");
         startGameButton.setOnAction(event -> startGame(primaryStage));
 
@@ -167,10 +174,6 @@ public class GameClientGUI extends Application {
         gameClient.setGameCanvas(gameCanvas);
 
         gameClient.setGameUpdateCallback(gameState -> {
-            System.out.println("Received game state: " + gameState);
-            System.out.println("Ships: " + gameState.getShips());
-            System.out.println("Enemies: " + gameState.getEnemies());
-            System.out.println("Bullets: " + gameState.getBullets());
             Platform.runLater(() -> {
                 drawGameState(gameState);
             });
@@ -236,7 +239,6 @@ public class GameClientGUI extends Application {
 
         // Gemileri çiz
         for (Ship ship : gameState.getShips()) {
-            System.out.println("Drawing Ship at: " + ship.getX() + ", " + ship.getY()); // Hata ayıklama için ekledik
             gc.setFill(Color.BLUE);
             gc.fillRect(ship.getX(), ship.getY(), ship.getWidth(), ship.getHeight());
         }

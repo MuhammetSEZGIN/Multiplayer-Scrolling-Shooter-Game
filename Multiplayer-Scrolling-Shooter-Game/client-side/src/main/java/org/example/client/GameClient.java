@@ -110,8 +110,7 @@ public class GameClient {
                     // Gelen mesajı işleme
                     Gson gson = new Gson();
                     ServerMessage serverMessage = gson.fromJson(message, ServerMessage.class);
-                    System.out.println("Server message type: " + serverMessage.getType());
-                    System.out.println("Server message lobbyId: " + serverMessage.getLobbies());
+
                     switch (serverMessage.getType()) {
                         case "lobbyCreated":
                             lobbyId = serverMessage.getLobbyId();
@@ -125,14 +124,16 @@ public class GameClient {
                             break;
                         case "gameState":
                             System.out.println("Received game state: " + serverMessage.getGameState());
-                            if (gameUpdateCallback != null) {
+
                                 gameUpdateCallback.accept(serverMessage.getGameState());
-                            }
+
                             break;
-                        case "lobiesList":
-                            if (lobbyUpdateCallback != null) {
+                        case "lobbiesList":
+
+                                System.out.println("Server message type: " + serverMessage.getType());
+                                System.out.println("Server message lobbyId: " + serverMessage.getLobbies());
                                 lobbyUpdateCallback.accept(serverMessage.getLobbies());
-                            }
+
                             break;
                         // Diğer mesaj türleri için case ekleyin
                     }
