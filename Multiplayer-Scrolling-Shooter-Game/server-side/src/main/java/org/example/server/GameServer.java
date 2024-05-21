@@ -80,10 +80,10 @@ public class GameServer {
         sender.setPlayerName(playerName);
         ClientMessage clientMessage = new ClientMessage(type, lobbyId, x, y, playerName);
 
-        System.out.println("clientMessage: \n "+
-                 "LobbyId:"+ clientMessage.getLobbyId()+
-                "\n Player Name"+ clientMessage.getPlayerName()
-                );
+//        System.out.println("clientMessage: \n "+
+//                 "LobbyId:"+ clientMessage.getLobbyId()+
+//                "\n Player Name: "+ clientMessage.getPlayerName()
+//                );
         if (clientMessage.getLobbyId() != null) {
             Game lobby = lobbies.get(clientMessage.getLobbyId());
             if (lobby != null) {
@@ -92,6 +92,8 @@ public class GameServer {
         } else if ("createLobby".equals(clientMessage.getType())) {
             createLobby(sender, clientMessage.getPlayerName());
         } else if ("joinLobby".equals(clientMessage.getType())) {
+            System.out.println(clientMessage.getPlayerName()+" "+clientMessage.getLobbyId());
+
             joinLobby(clientMessage.getLobbyId(), sender, clientMessage.getPlayerName());
         } else if ("getLobbies".equals(clientMessage.getType())) {
             sendLobbiesList(sender);
@@ -124,11 +126,13 @@ public class GameServer {
         }
     }
 
-    private void joinLobby(String lobbyId, ClientHandler client, String playerName) {
+    public void joinLobby(String lobbyId, ClientHandler client, String playerName) {
         Game lobby = lobbies.get(lobbyId);
         if (lobby != null) {
             if (lobby.getClients().size() < 3) {
                 lobby.addClient(client, playerName);
+                System.out.println("Lobby found");
+
                 sendLobbyUpdate(lobby);
             } else {
                 client.sendMessage("Lobby is full");
@@ -170,6 +174,7 @@ public class GameServer {
         serverMessage.setState(state);
         try {
             String message = objectMapper.writeValueAsString(serverMessage);
+            updateGames();
             broadcast(message, lobby.getLobbyId());
         } catch (IOException e) {
             e.printStackTrace();

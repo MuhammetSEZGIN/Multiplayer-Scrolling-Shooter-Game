@@ -119,21 +119,22 @@ public class GameClient {
                             if (lobbyUpdateCallback != null) {
                                 lobbyId = serverMessage.getLobbyId();
                                 lobbyUpdateCallback.accept(serverMessage.getPlayers());
+                                System.out.println("Server Players in lobby: " + serverMessage.getPlayers());
 
                             }
                             break;
                         case "gameState":
                             System.out.println("Received game state: " + serverMessage.getGameState());
-
+                                if(gameUpdateCallback != null)
                                 gameUpdateCallback.accept(serverMessage.getGameState());
 
                             break;
                         case "lobbiesList":
-
+                            if (lobbyUpdateCallback != null) {
                                 System.out.println("Server message type: " + serverMessage.getType());
                                 System.out.println("Server message lobbyId: " + serverMessage.getLobbies());
                                 lobbyUpdateCallback.accept(serverMessage.getLobbies());
-
+                            }
                             break;
                         // Diğer mesaj türleri için case ekleyin
                     }
