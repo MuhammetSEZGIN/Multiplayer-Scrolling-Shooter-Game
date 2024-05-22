@@ -20,6 +20,8 @@ public class Game {
     private String lobbyId;
     private ObjectMapper objectMapper;
     private boolean gameStarted;
+    private long spawnInterval;
+    private long lastEnemySpawnTime;
 
     public Game(GameServer server, String lobbyId) {
         this.server = server;
@@ -30,7 +32,8 @@ public class Game {
         clients = new ArrayList<>();
         playerNames = new ConcurrentHashMap<>();
         objectMapper = new ObjectMapper();
-        enemies.add(new Enemy(1, 300, 300, 2)); // Örnek düşman
+        this.lastEnemySpawnTime = System.currentTimeMillis();
+        this.spawnInterval = 500; // Örnek düşman
         gameStarted = false;
     }
 
@@ -117,9 +120,44 @@ public class Game {
     }
 
     private void updateEnemies() {
+        long currentTime = System.currentTimeMillis();
+        if(currentTime - lastEnemySpawnTime >= spawnInterval) {
+            addRandomEnemy();
+            lastEnemySpawnTime = currentTime;
+        }
+
         for (Enemy enemy : enemies) {
             enemy.update();
         }
+    }
+    // düşmanların rastgele oluşturulması
+    private void addRandomEnemy() {
+        Random rand = new Random();
+        int x, y;
+        boolean isColliding;
+
+        do {
+            x = rand.nextInt(800 - 50); // assuming enemy width is 50
+            y = 0; // assuming enemy height is 50
+            isColliding = false;
+
+            for (Enemy enemy : enemies) {
+                if (isCollidingWithExistingEnemies(x, y, enemy)) {
+                    isColliding = true;
+                    break;
+                }
+            }
+        } while (isColliding);
+
+        enemies.add(new Enemy(1, x, y, 2, 3));
+    }
+    // oluşturulan düşmanların aynı yerde oluşmaması için kontrol
+    private boolean isCollidingWithExistingEnemies(int x, int y, Enemy existingEnemy) {
+        int enemyWidth = 50; // example enemy width
+        int enemyHeight = 50; // example enemy height
+
+        return (x < existingEnemy.getX() + enemyWidth && x + enemyWidth > existingEnemy.getX() &&
+                y < existingEnemy.getY() + enemyHeight && y + enemyHeight > existingEnemy.getY());
     }
 
     private void updateBullets() {
