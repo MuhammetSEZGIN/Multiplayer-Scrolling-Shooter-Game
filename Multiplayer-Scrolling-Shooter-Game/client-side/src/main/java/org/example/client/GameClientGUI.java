@@ -27,6 +27,8 @@ public class GameClientGUI extends Application {
     private String playerName;
     private String lobbyId;
     private TextArea lobbyPlayersTextArea;
+    private TextArea lobbyChatTextArea;
+    private TextField chatField;
     private Canvas gameCanvas;
     private double shipX = 400;
     private double shipY = 300;
@@ -70,9 +72,7 @@ public class GameClientGUI extends Application {
 
         Button createLobbyButton = new Button("Create Lobby");
         createLobbyButton.setOnAction(event -> {
-            gameClient.createLobby(); // Lobi oluşturma işlemini başlat
-            lobbyId = gameClient.getLobbyId(); // Oluşturulan lobi id'sini al
-            showLobbyScreen(primaryStage);
+            createLobby(primaryStage);
         });
 
         root.getChildren().addAll(joinLobbyButton, createLobbyButton);
@@ -120,32 +120,45 @@ public class GameClientGUI extends Application {
     }
 
     private void joinLobby(String lobbyId, Stage primaryStage) {
-        gameClient = new GameClient(playerName, lobbyId);
+        // gameClient = new GameClient(playerName, lobbyId);
+        gameClient.setLobbyId(lobbyId);
         gameClient.start();
 
-        showLobbyScreen(primaryStage);
+        showLobbyScreen(primaryStage, gameClient);
     }
 
     private void createLobby(Stage primaryStage) {
-        gameClient = new GameClient(playerName);
+      //
         gameClient.createLobby();
         lobbyId = gameClient.getLobbyId();
-
-        showLobbyScreen(primaryStage);
+        System.out.println("Created lobby with ID: " + lobbyId);
+        showLobbyScreen(primaryStage, gameClient);
     }
 
-    private void showLobbyScreen(Stage primaryStage) {
+    private void showLobbyScreen(Stage primaryStage, GameClient gameClient) {
         VBox root = new VBox(10);
         Scene scene = new Scene(root, 300, 200);
 
         lobbyPlayersTextArea = new TextArea();
         lobbyPlayersTextArea.setEditable(false);
+
+        chatField = new TextField();
+        chatField.setPromptText("Enter chat message");
+
         Button startGameButton = new Button("Start Game");
-        startGameButton.setOnAction(event -> startGame(primaryStage));
+        lobbyId = gameClient.getLobbyId();
 
-        root.getChildren().addAll(new Label("Lobby: " + lobbyId), lobbyPlayersTextArea, startGameButton);
+        Button sendButton = new Button("Send");
+        sendButton.setOnAction(event -> {
 
-        primaryStage.setScene(scene);
+            String message = chatField.getText();
+            if(!(message == null || message.isEmpty())) {
+                gameClient.sendMessage(new ClientMessage("chat", lobbyId, 0, 0, playerName, message));
+                chatField.clear();
+                lobbyPlayersTextArea.appendText(gameClient.getPlayerName() + ": " + message + "\n");
+            }
+
+        });
 
         gameClient.setLobbyUpdateCallback(players -> {
             if (players != null) {
@@ -153,12 +166,22 @@ public class GameClientGUI extends Application {
                     lobbyPlayersTextArea.clear();
                     for (String player : players) {
                         if (player != null) {
-                            lobbyPlayersTextArea.appendText(player + "\n");
+                            lobbyPlayersTextArea.appendText(player + " has joined the lobby\n");
+                            lobbyId = gameClient.getLobbyId();
+                            System.out.println("Lobby ID: " + lobbyId);
                         }
                     }
                 });
             }
         });
+        Platform.runLater(() -> {
+            lobbyId= gameClient.getLobbyId();
+            root.getChildren().add(new Label("Lobby: " + lobbyId));
+        });
+        root.getChildren().addAll(lobbyPlayersTextArea, chatField,sendButton, startGameButton);
+        startGameButton.setOnAction(event -> startGame(primaryStage));
+
+        primaryStage.setScene(scene);
     }
 
     private void startGame(Stage primaryStage) {

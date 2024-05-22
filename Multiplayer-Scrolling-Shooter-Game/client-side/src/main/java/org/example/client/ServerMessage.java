@@ -10,7 +10,7 @@ public class ServerMessage {
     private List<String> players;
     private GameState gameState;
     private String lobbyId; // Yeni eklendi
-
+    
     public ServerMessage() {
     }
 

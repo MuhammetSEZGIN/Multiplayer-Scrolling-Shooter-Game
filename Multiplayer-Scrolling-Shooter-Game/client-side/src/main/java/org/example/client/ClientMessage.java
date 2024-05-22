@@ -7,12 +7,24 @@ public class ClientMessage {
     private double y;
     private String playerName;
 
+
+
+    private String Message; // Yeni eklendi
+    public ClientMessage(String type, String lobbyId, double x, double y, String playerName, String Message) {
+        this.type = type;
+        this.lobbyId = lobbyId;
+        this.x = x;
+        this.y = y;
+        this.playerName = playerName;
+        this.Message = Message; // Yeni eklendi
+    }
     public ClientMessage(String type, String lobbyId, double x, double y, String playerName) {
         this.type = type;
         this.lobbyId = lobbyId;
         this.x = x;
         this.y = y;
         this.playerName = playerName;
+        this.Message = "No message"; // Yeni eklendi
     }
 
     // Getters and setters
@@ -20,7 +32,13 @@ public class ClientMessage {
     public String getType() {
         return type;
     }
+    public String getMessage() {
+        return Message;
+    }
 
+    public void setMessage(String message) {
+        Message = message;
+    }
     public void setType(String type) {
         this.type = type;
     }

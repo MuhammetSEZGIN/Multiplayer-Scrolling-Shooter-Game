@@ -2,12 +2,12 @@ package org.example.game;
 
 public class Enemy extends GameObject {
     private int health;
-    private int shootCooldown;
+    private int speed;
 
-    public Enemy(int id, double x, double y, int health) {
+    public Enemy(int id, double x, double y, int health, int speed) {
         super(id, x, y, 50, 50); // Örnek olarak genişlik ve yükseklik 50 olarak ayarlandı
         this.health = health;
-        this.shootCooldown = 0;
+        this.speed = speed;
     }
 
     public int getHealth() {
@@ -20,17 +20,8 @@ public class Enemy extends GameObject {
 
     public void update() {
         // Düşman hareketi mantığı
-        if (shootCooldown > 0) {
-            shootCooldown--;
-        } else {
-            shoot();
-            shootCooldown = 100; // Örnek olarak mermi atma aralığı
-        }
+        setY(getY() + speed); // Düşmanı aşağı hareket ettir
     }
 
-    private void shoot() {
-        // Düşmandan mermi oluştur ve oyuna ekle
-        Bullet bullet = new Bullet(getX(), getY(), -10, null); // Düşman mermisi yukarı hareket eder
-        // Oyuna mermi ekleme mantığı burada olmalı
-    }
+
 }

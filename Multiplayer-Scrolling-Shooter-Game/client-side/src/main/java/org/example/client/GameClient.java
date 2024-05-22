@@ -21,6 +21,8 @@ public class GameClient {
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
+
+
     private String playerName;
     private String lobbyId;
     private Canvas gameCanvas;
@@ -55,16 +57,13 @@ public class GameClient {
 
     public void createLobby() {
         try {
-            socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
 
             new Thread(new ServerListener()).start();
             // lobi id oluşturma
             //String newLobbyId = UUID.randomUUID().toString();
             // Lobi oluşturma mesajı gönderme
             sendMessage(new ClientMessage("createLobby", null, 0, 0, playerName));
-        } catch (IOException e) {
+        } catch ( Exception e) {
             e.printStackTrace();
         }
     }
@@ -115,6 +114,8 @@ public class GameClient {
                         case "lobbyCreated":
                             lobbyId = serverMessage.getLobbyId();
                             break;
+                        case "chat":
+                            lobbyUpdateCallback.accept(serverMessage.getPlayers());
                         case "lobbyUpdate":
                             if (lobbyUpdateCallback != null) {
                                 lobbyId = serverMessage.getLobbyId();
@@ -152,6 +153,12 @@ public class GameClient {
             }
         }
     }
+
+
+    public String getPlayerName() {
+        return playerName;
+    }
+
 
     public String getLobbyId() {
         return lobbyId;
