@@ -1,5 +1,6 @@
 package org.example.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.game.Game;
 import org.json.JSONObject;
@@ -76,9 +77,9 @@ public class GameServer {
         int x = clientMessageJson.getInt("x");
         int y = clientMessageJson.getInt("y");
         String playerName = clientMessageJson.getString("playerName");
-
+        String Message = clientMessageJson.getString("Message");
         sender.setPlayerName(playerName);
-        ClientMessage clientMessage = new ClientMessage(type, lobbyId, x, y, playerName);
+        ClientMessage clientMessage = new ClientMessage(type, lobbyId, x, y, playerName, Message);
 
 //        System.out.println("clientMessage: \n "+
 //                 "LobbyId:"+ clientMessage.getLobbyId()+
@@ -87,17 +88,46 @@ public class GameServer {
         if (clientMessage.getLobbyId() != null) {
             Game lobby = lobbies.get(clientMessage.getLobbyId());
             if (lobby != null) {
+                System.out.println(clientMessage.getMessage());
                 lobby.processMessage(clientMessage, sender);
             }
         } else if ("createLobby".equals(clientMessage.getType())) {
             createLobby(sender, clientMessage.getPlayerName());
         } else if ("joinLobby".equals(clientMessage.getType())) {
             System.out.println(clientMessage.getPlayerName()+" "+clientMessage.getLobbyId());
-
             joinLobby(clientMessage.getLobbyId(), sender, clientMessage.getPlayerName());
-        } else if ("getLobbies".equals(clientMessage.getType())) {
+        }
+
+         else if ("getLobbies".equals(clientMessage.getType())) {
             sendLobbiesList(sender);
         }
+    }
+
+    public void sendChatMassage(String playerName,String message, String lobbyId){
+        Game lobby = lobbies.get(lobbyId);
+        // server mesajı oluştur
+        System.out.println("Chat message: "+ message);
+        System.out.println("lobby: "+ lobby.getLobbyId());
+        ServerMessage serverMessage = new ServerMessage();
+        serverMessage.setType("chat");
+        serverMessage.setLobbyId(lobbyId);
+        message= playerName +": "+ message;
+        serverMessage.setState(message);
+        String chatMessage = null;
+        try {
+            chatMessage = objectMapper.writeValueAsString(serverMessage);
+
+            if (lobby != null) {
+                synchronized (lobby.getClients()) {
+                    for (ClientHandler client : lobby.getClients()) {
+                        client.sendMessage(chatMessage);
+                    }
+                }
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private void createLobby(ClientHandler creator, String playerName) {
@@ -170,7 +200,7 @@ public class GameServer {
         }
         serverMessage.setPlayers(players);
         serverMessage.setLobbyId(lobby.getLobbyId());
-        String state = "player added:"+ players.get(players.size()-1);
+        String state = "player added:"+ players.get(players.size() - 1);
         serverMessage.setState(state);
         try {
             String message = objectMapper.writeValueAsString(serverMessage);
@@ -180,6 +210,8 @@ public class GameServer {
             e.printStackTrace();
         }
     }
+
+
 
     private void updateGames() {
         for (Game lobby : lobbies.values()) {

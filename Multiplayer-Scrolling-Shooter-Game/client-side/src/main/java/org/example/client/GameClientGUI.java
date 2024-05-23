@@ -34,7 +34,7 @@ public class GameClientGUI extends Application {
     private double shipY = 300;
     private static final double SHIP_SPEED = 5;
     private Set<KeyCode> pressedKeys = new HashSet<>();
-
+    private List<String> messages;
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Multiplayer Shooter Game");
@@ -148,17 +148,24 @@ public class GameClientGUI extends Application {
         Button startGameButton = new Button("Start Game");
         lobbyId = gameClient.getLobbyId();
 
+        gameClient.setLobbyCreatedCallback(lobbyId -> {
+            Platform.runLater(() -> {
+                root.getChildren().add(new Label("Lobby: " + lobbyId));
+            });
+        });
+
+
         Button sendButton = new Button("Send");
         sendButton.setOnAction(event -> {
 
             String message = chatField.getText();
+            System.out.println("Message: " + message);
             if(!(message == null || message.isEmpty())) {
-                gameClient.sendMessage(new ClientMessage("chat", lobbyId, 0, 0, playerName, message));
+                gameClient.sendChatMessage(message);
                 chatField.clear();
-                lobbyPlayersTextArea.appendText(gameClient.getPlayerName() + ": " + message + "\n");
             }
-
         });
+
 
         gameClient.setLobbyUpdateCallback(players -> {
             if (players != null) {
@@ -174,10 +181,15 @@ public class GameClientGUI extends Application {
                 });
             }
         });
-        Platform.runLater(() -> {
-            lobbyId= gameClient.getLobbyId();
-            root.getChildren().add(new Label("Lobby: " + lobbyId));
+
+        gameClient.setChatCallback(message -> {
+            if (message != null) {
+                Platform.runLater(() -> {
+                    lobbyPlayersTextArea.appendText(  message + "\n");
+                });
+            }
         });
+
         root.getChildren().addAll(lobbyPlayersTextArea, chatField,sendButton, startGameButton);
         startGameButton.setOnAction(event -> startGame(primaryStage));
 
