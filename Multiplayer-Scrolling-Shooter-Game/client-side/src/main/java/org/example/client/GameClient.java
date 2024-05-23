@@ -5,10 +5,11 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
-
+import org.json.JSONObject;
 import javafx.scene.canvas.Canvas;
 import org.example.game.GameState;
 import com.google.gson.Gson;
@@ -28,6 +29,9 @@ public class GameClient {
     private Canvas gameCanvas;
     private Consumer<List<String>> lobbyUpdateCallback;
     private Consumer<GameState> gameUpdateCallback;
+    private  Consumer <String> chatCallback;
+    private Consumer<String> lobbyCreatedCallback;
+
 
     public GameClient(String playerName) {
         this.playerName = playerName;
@@ -86,17 +90,11 @@ public class GameClient {
         sendMessage(new ClientMessage("startGame", lobbyId, 0, 0, playerName));
     }
 
-    public void setLobbyUpdateCallback(Consumer<List<String>> callback) {
-        this.lobbyUpdateCallback = callback;
+    public void sendChatMessage(String message) {
+        sendMessage(new ClientMessage("chat", lobbyId, 0, 0, playerName, message));
     }
 
-    public void setGameUpdateCallback(Consumer<GameState> callback) {
-        this.gameUpdateCallback = callback;
-    }
 
-    public void setGameCanvas(Canvas gameCanvas) {
-        this.gameCanvas = gameCanvas;
-    }
 
     private class ServerListener implements Runnable {
         @Override
@@ -113,9 +111,16 @@ public class GameClient {
                     switch (serverMessage.getType()) {
                         case "lobbyCreated":
                             lobbyId = serverMessage.getLobbyId();
+                            if (lobbyCreatedCallback != null) {
+                                lobbyCreatedCallback.accept(lobbyId);
+                            }
                             break;
                         case "chat":
-                            lobbyUpdateCallback.accept(serverMessage.getPlayers());
+                            if(chatCallback != null){
+                                System.out.println("Server chat message: " + serverMessage.getState());
+                                chatCallback.accept(serverMessage.getState());
+                            }
+                            break;
                         case "lobbyUpdate":
                             if (lobbyUpdateCallback != null) {
                                 lobbyId = serverMessage.getLobbyId();
@@ -154,6 +159,28 @@ public class GameClient {
         }
     }
 
+    public void setChatCallback(Consumer<String> chatCallback) {
+        this.chatCallback = chatCallback;
+    }
+    public void setLobbyUpdateCallback(Consumer<List<String>> callback) {
+        this.lobbyUpdateCallback = callback;
+    }
+
+    public void setLobbyCreatedCallback(Consumer<String> callback) {
+        this.lobbyCreatedCallback = callback;
+    }
+
+    public void setGameUpdateCallback(Consumer<GameState> callback) {
+        this.gameUpdateCallback = callback;
+    }
+
+    public void setGameCanvas(Canvas gameCanvas) {
+        this.gameCanvas = gameCanvas;
+    }
+
+    public Consumer<String> getChatCallback() {
+        return chatCallback;
+    }
 
     public String getPlayerName() {
         return playerName;

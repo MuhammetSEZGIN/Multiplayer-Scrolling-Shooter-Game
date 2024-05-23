@@ -10,7 +10,8 @@ public class ServerMessage {
     private List<String> players;
     private GameState gameState;
     private String lobbyId; // Yeni eklendi
-    
+    private String state;
+
     public ServerMessage() {
     }
 
@@ -24,6 +25,14 @@ public class ServerMessage {
 
     public List<String> getLobbies() {
         return lobbies;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String message) {
+        this.state = state;
     }
 
     public void setLobbies(List<String> lobbies) {

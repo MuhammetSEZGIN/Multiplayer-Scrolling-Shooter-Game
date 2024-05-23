@@ -33,7 +33,7 @@ public class Game {
         playerNames = new ConcurrentHashMap<>();
         objectMapper = new ObjectMapper();
         this.lastEnemySpawnTime = System.currentTimeMillis();
-        this.spawnInterval = 500; // Örnek düşman
+        this.spawnInterval = 1000; // düşman oluşturma aralığı
         gameStarted = false;
     }
 
@@ -66,6 +66,9 @@ public class Game {
             case "startGame":
                 startGame();
                 break;
+            case "chat":
+                System.out.printf("Chat message: \n gönderilecek:" + clientMessage.getMessage() + " \nLobi id:" + clientMessage.getLobbyId() + "\n");
+                server.sendChatMassage(clientMessage.getPlayerName(),clientMessage.getMessage(), clientMessage.getLobbyId());                break;
             case "joinLobby":
 
                 System.out.println(clientMessage.getPlayerName()+" "+clientMessage.getLobbyId());
@@ -187,7 +190,9 @@ public class Game {
                     enemy.decreaseHealth(); // Düşmana hasar ver
                     if (enemy.getHealth() <= 0) {
                         enemyIterator.remove(); // Düşmanı kaldır
-                        findShipByClient(bullet.getOwner()).increaseScore(); // Vuran gemiye puan ekle
+                        if(bullet.getOwner() != null){
+                            findShipByClient(bullet.getOwner()).increaseScore(); // Vuran gemiye puan ekle
+                        }
                     }
                     break;
                 }
@@ -199,12 +204,25 @@ public class Game {
         }
 
         // Gemi-düşman çarpışması
-        for (Ship ship : ships) {
-            for (Enemy enemy : enemies) {
+        Iterator<Ship> shipIterator = ships.iterator();
+        while (shipIterator.hasNext()) {
+            Ship ship = shipIterator.next();
+            Iterator<Enemy> enemyIterator = enemies.iterator();
+            while (enemyIterator.hasNext()) {
+                Enemy enemy = enemyIterator.next();
                 if (checkCollision(ship, enemy)) {
                     ship.decreaseHealth(); // Gemiye hasar ver
+                    enemy.decreaseHealth(); // Düşmana hasar ver
+
+                    // Eğer düşmanın sağlığı sıfır veya daha az ise düşmanı kaldır
+                    if (enemy.getHealth() <= 0) {
+                        enemyIterator.remove();
+                    }
+
+                    // Eğer geminin sağlığı sıfır veya daha az ise gemiyi kaldır
                     if (ship.getHealth() <= 0) {
-                        removeShip(ship);
+                        shipIterator.remove();
+                        break; // İç içe döngüden çıkmak için
                     }
                 }
             }
@@ -217,6 +235,8 @@ public class Game {
             Ship winner = determineWinner();
             if (winner != null) {
                 server.broadcast("Game Over. Winner: " + winner.getId() + " with score: " + winner.getScore(), lobbyId);
+
+
             } else {
                 server.broadcast("Game Over. No winner.", lobbyId);
             }
@@ -234,11 +254,12 @@ public class Game {
                 obj1.getY() + obj2.getHeight() > obj2.getY();
     }
 
-    private void removeShip(Ship ship) {
-        ships.remove(ship);
-        server.broadcast("Ship destroyed: " + ship.getId(), lobbyId);
-    }
 
+
+//    private void sendRemovedShip(Ship ship) {
+//        ServerMessage serverMessage = new ServerMessage();
+//        serverMessage.setType("GameOver");
+//    }
     private void sendGameStateToClients() {
         GameState gameState = new GameState();
         gameState.setShips(ships);
