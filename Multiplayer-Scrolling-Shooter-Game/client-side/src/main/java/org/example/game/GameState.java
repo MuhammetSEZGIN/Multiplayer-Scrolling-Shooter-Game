@@ -6,7 +6,16 @@ public class GameState {
     private List<Ship> ships;
     private List<Enemy> enemies;
     private List<Bullet> bullets;
+    private List<String> gameScores;
     private String type;
+
+    public List<String> getGameScores() {
+        return gameScores;
+    }
+
+    public void setGameScores(List<String> gameScores) {
+        this.gameScores = gameScores;
+    }
 
     public List<Ship> getShips() {
         return ships;

@@ -36,6 +36,7 @@ public class GameClientGUI extends Application {
     private Label healthLabel;
     private Label scoreLabel;
     private Boolean gameGoingOn;
+
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Multiplayer Shooter Game");
@@ -219,13 +220,15 @@ public class GameClientGUI extends Application {
 
         gameClient.setGameUpdateCallback(gameState -> {
             Platform.runLater(() -> {
-                if(gameState.getType().equals("GameGoingOn")) {
+                if(!gameState.getType().equals("gameOver")){
                     drawGameState(gameState);
                     updatePlayerStats(gameState);
+                    System.out.println("Game is going on: " + gameGoingOn);
                 }
                 else{
                     gameGoingOn = false;
-                    gameOverScreen(primaryStage);
+                    List<String> gameScores = gameState.getGameScores();
+                    gameOverScreen(primaryStage, gameScores);
 
                 }
             });
@@ -241,7 +244,7 @@ public class GameClientGUI extends Application {
         primaryStage.show();
     }
 
-    private void gameOverScreen(Stage primaryStage) {
+    private void gameOverScreen(Stage primaryStage,List<String> gameScores){
         VBox root = new VBox(10);
         Scene scene = new Scene(root, 300, 200);
 
@@ -250,18 +253,19 @@ public class GameClientGUI extends Application {
         scoresTextArea.setEditable(false);
         Button returnToLobbyButton = new Button("Return to Lobby");
 
-        gameClient.setGameOverCallback(players -> {
+        for (String scores : gameScores) {
             Platform.runLater(() -> {
-                for (String player : players) {
-                    scoresTextArea.appendText(player + "\n");
-                }
-            });
-        });
+                System.out.println("Scores: " + scores);
+                scoresTextArea.appendText(scores + "\n");
+            }
+            );
+        }
+
         returnToLobbyButton.setOnAction(event -> {
             showLobbyOptions(primaryStage);
         });
 
-        root.getChildren().addAll(gameOverLabel, returnToLobbyButton);
+        root.getChildren().addAll(gameOverLabel,scoresTextArea, returnToLobbyButton);
 
         primaryStage.setScene(scene);
 
@@ -308,7 +312,7 @@ public class GameClientGUI extends Application {
 
                 if (!pressedKeys.isEmpty()) {
                     gameClient.sendMessage(new ClientMessage("move", gameClient.getLobbyId(), shipX, shipY, playerName));
-                    System.out.println("Sent move message with coordinates: (" + shipX + ", " + shipY + ")");
+                    // System.out.println("Sent move message with coordinates: (" + shipX + ", " + shipY + ")");
                 }
             }
         };

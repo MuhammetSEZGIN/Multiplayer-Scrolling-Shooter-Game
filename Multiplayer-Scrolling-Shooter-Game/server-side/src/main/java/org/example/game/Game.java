@@ -257,13 +257,20 @@ public class Game {
         Map<String, Integer> sortedRankings = sortByValue(rankings);
         List<String> PlayerRanking = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : sortedRankings.entrySet()) {
-            PlayerRanking.add(entry.getValue()+": " +entry.getKey());
+            PlayerRanking.add(entry.getKey()+" - Score:" +entry.getValue());
             System.out.println("Player: " + entry.getKey() + " Score: " + entry.getValue());
         }
 
+        GameState gameState = new GameState();
+        gameState.setShips(ships);
+        gameState.setEnemies(enemies);
+        gameState.setBullets(bullets);
+        gameState.setGameScores(PlayerRanking);
+        gameState.setType("gameOver");
         try {
             ServerMessage serverMessage = new ServerMessage();
-            serverMessage.setType("gameOver");
+            serverMessage.setGameState(gameState);
+            serverMessage.setType("gameState");
             serverMessage.setPlayers(PlayerRanking);
             String message = objectMapper.writeValueAsString(serverMessage);
             gameStarted = false;
