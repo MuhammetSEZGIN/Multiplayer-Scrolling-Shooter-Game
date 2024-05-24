@@ -6,6 +6,7 @@ public class GameState {
     private List<Ship> ships;
     private List<Enemy> enemies;
     private List<Bullet> bullets;
+    private String type;
 
     public List<Ship> getShips() {
         return ships;
@@ -29,5 +30,13 @@ public class GameState {
 
     public void setBullets(List<Bullet> bullets) {
         this.bullets = bullets;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

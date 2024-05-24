@@ -31,7 +31,7 @@ public class GameClient {
     private Consumer<GameState> gameUpdateCallback;
     private  Consumer <String> chatCallback;
     private Consumer<String> lobbyCreatedCallback;
-
+    private Consumer<List<String>> gameOverCallback;
 
     public GameClient(String playerName) {
         this.playerName = playerName;
@@ -75,7 +75,7 @@ public class GameClient {
     public void sendMessage(ClientMessage clientMessage) {
         if (out != null) {
             String message = new Gson().toJson(clientMessage);
-            System.out.println("Sending message: " + message);
+            // System.out.println("Sending message: " + message);
             out.println(message);
         } else {
             System.out.println("Output stream is null, message not sent.");
@@ -102,7 +102,7 @@ public class GameClient {
             try {
                 String message;
                 while ((message = in.readLine()) != null) {
-                    System.out.println("Server: " + message);
+                    //System.out.println("Server: " + message);
 
                     // Gelen mesajı işleme
                     Gson gson = new Gson();
@@ -130,7 +130,7 @@ public class GameClient {
                             }
                             break;
                         case "gameState":
-                            System.out.println("Received game state: " + serverMessage.getGameState());
+                            //System.out.println("Received game state: " + serverMessage.getGameState().getShips().get(0).getId());
                                 if(gameUpdateCallback != null)
                                 gameUpdateCallback.accept(serverMessage.getGameState());
 
@@ -142,7 +142,12 @@ public class GameClient {
                                 lobbyUpdateCallback.accept(serverMessage.getLobbies());
                             }
                             break;
-                        // Diğer mesaj türleri için case ekleyin
+                        case "gameOver":
+                            if (gameOverCallback != null) {
+                                gameOverCallback.accept(serverMessage.getPlayers());
+                            }
+
+                            break;
                     }
                 }
             } catch (IOException e) {
@@ -168,6 +173,10 @@ public class GameClient {
 
     public void setLobbyCreatedCallback(Consumer<String> callback) {
         this.lobbyCreatedCallback = callback;
+    }
+
+    public void setGameOverCallback(Consumer<List<String>> callback) {
+        this.gameOverCallback = callback;
     }
 
     public void setGameUpdateCallback(Consumer<GameState> callback) {

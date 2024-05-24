@@ -1,5 +1,6 @@
 package org.example.game;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.server.ClientHandler;
 import org.example.server.ClientMessage;
 import org.example.server.GameServer;
@@ -7,6 +8,7 @@ import org.example.server.ServerMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.sql.SQLOutput;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,14 +17,14 @@ public class Game {
     private List<Enemy> enemies;
     private List<Bullet> bullets;
     private List<ClientHandler> clients;
-    private Map<ClientHandler, String> playerNames;
+    private Map<Integer, ClientHandler> playerNames;
     private GameServer server;
     private String lobbyId;
     private ObjectMapper objectMapper;
     private boolean gameStarted;
     private long spawnInterval;
     private long lastEnemySpawnTime;
-
+    private Map<String, Integer> rankings;
     public Game(GameServer server, String lobbyId) {
         this.server = server;
         this.lobbyId = lobbyId;
@@ -30,6 +32,7 @@ public class Game {
         enemies = new ArrayList<>();
         bullets = new ArrayList<>();
         clients = new ArrayList<>();
+        rankings = new HashMap<>();
         playerNames = new ConcurrentHashMap<>();
         objectMapper = new ObjectMapper();
         this.lastEnemySpawnTime = System.currentTimeMillis();
@@ -40,10 +43,11 @@ public class Game {
     public void addClient(ClientHandler client, String playerName) {
         if (clients.size() < 3) {
             clients.add(client);
-            playerNames.put(client, playerName);
-            ships.add(new Ship(client.hashCode(), 100, 100, 3)); // Örnek gemi
+            playerNames.put(playerName.hashCode(), client);
+            ships.add(new Ship(playerName.hashCode(), 100, 100, 4)); // Örnek gemi
         } else {
             client.sendMessage("Lobby is full");
+
         }
     }
 
@@ -80,11 +84,11 @@ public class Game {
 
     private void handleMove(ClientMessage clientMessage, ClientHandler sender) {
         Ship ship = findShipByClient(sender);
-        System.out.println("Ship info"+ship);
+        // System.out.println("Ship info"+ship);
         if (ship != null) {
             ship.setX(clientMessage.getX());
             ship.setY(clientMessage.getY());
-            System.out.println("Updated Ship Position: " + ship.getX() + ", " + ship.getY()); // Hata ayıklama için ekledik
+            // System.out.println("Updated Ship Position: " + ship.getX() + ", " + ship.getY()); // Hata ayıklama için ekledik
             sendGameStateToClients(); // Oyun durumunu tüm istemcilere gönder
         }
     }
@@ -98,7 +102,7 @@ public class Game {
     }
 
     private Ship findShipByClient(ClientHandler client) {
-        return ships.stream().filter(ship -> ship.getId() == client.hashCode()).findFirst().orElse(null);
+        return ships.stream().filter(ship -> ship.getId() == client.getPlayerName().hashCode()).findFirst().orElse(null);
     }
 
     private void addBullet(Bullet bullet) {
@@ -215,13 +219,11 @@ public class Game {
                     enemy.decreaseHealth(); // Düşmana hasar ver
 
                     // Eğer düşmanın sağlığı sıfır veya daha az ise düşmanı kaldır
-                    if (enemy.getHealth() <= 0) {
-                        enemyIterator.remove();
-                    }
-
                     // Eğer geminin sağlığı sıfır veya daha az ise gemiyi kaldır
                     if (ship.getHealth() <= 0) {
+                        rankings.put(playerNames.get(ship.getId()).getPlayerName(), ship.getScore());
                         shipIterator.remove();
+                        enemyIterator.remove();
                         break; // İç içe döngüden çıkmak için
                     }
                 }
@@ -232,20 +234,16 @@ public class Game {
     private void checkGameOver() {
         if (ships.isEmpty()) {
             // Oyun bitti, kazananı belirle
-            Ship winner = determineWinner();
-            if (winner != null) {
-                server.broadcast("Game Over. Winner: " + winner.getId() + " with score: " + winner.getScore(), lobbyId);
+            sendGameOverInfo();
 
-
-            } else {
-                server.broadcast("Game Over. No winner.", lobbyId);
-            }
         }
     }
 
-    private Ship determineWinner() {
-        return ships.stream().max(Comparator.comparingInt(Ship::getScore)).orElse(null);
-    }
+
+//
+//     private Ship determineWinner() {
+//        return ships.stream().max(Comparator.comparingInt(Ship::getScore)).orElse(null);
+//    }
 
     private boolean checkCollision(GameObject obj1, GameObject obj2) {
         return obj1.getX() < obj2.getX() + obj2.getWidth() &&
@@ -255,17 +253,50 @@ public class Game {
     }
 
 
+    private void sendGameOverInfo(){
+        Map<String, Integer> sortedRankings = sortByValue(rankings);
+        List<String> PlayerRanking = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : sortedRankings.entrySet()) {
+            PlayerRanking.add(entry.getValue()+": " +entry.getKey());
+            System.out.println("Player: " + entry.getKey() + " Score: " + entry.getValue());
+        }
 
-//    private void sendRemovedShip(Ship ship) {
-//        ServerMessage serverMessage = new ServerMessage();
-//        serverMessage.setType("GameOver");
-//    }
+        try {
+            ServerMessage serverMessage = new ServerMessage();
+            serverMessage.setType("gameOver");
+            serverMessage.setPlayers(PlayerRanking);
+            String message = objectMapper.writeValueAsString(serverMessage);
+            gameStarted = false;
+            server.broadcast(message, lobbyId);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+    public static Map<String, Integer> sortByValue(Map<String, Integer> unsortedMap) {
+        List<Map.Entry<String, Integer>> list = new ArrayList<>(unsortedMap.entrySet());
+        list.sort(Map.Entry.<String, Integer>comparingByValue().reversed());
+
+        Map<String, Integer> sortedMap = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : list) {
+            sortedMap.put(entry.getKey(), entry.getValue());
+        }
+        return sortedMap;
+    }
+
     private void sendGameStateToClients() {
         GameState gameState = new GameState();
         gameState.setShips(ships);
         gameState.setEnemies(enemies);
         gameState.setBullets(bullets);
-
+        if (gameStarted) {
+            gameState.setType("GameGoingOn");
+        } else {
+            gameState.setType("GameOver");
+        }
         try {
             String gameStateJson = objectMapper.writeValueAsString(gameState);
             ServerMessage serverMessage = new ServerMessage();
@@ -276,6 +307,7 @@ public class Game {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     public void startGame() {
