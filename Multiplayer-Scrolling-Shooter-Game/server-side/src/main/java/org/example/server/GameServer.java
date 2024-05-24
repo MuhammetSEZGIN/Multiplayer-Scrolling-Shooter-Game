@@ -88,7 +88,7 @@ public class GameServer {
         if (clientMessage.getLobbyId() != null) {
             Game lobby = lobbies.get(clientMessage.getLobbyId());
             if (lobby != null) {
-                System.out.println(clientMessage.getMessage());
+                // System.out.println(clientMessage.getMessage());
                 lobby.processMessage(clientMessage, sender);
             }
         } else if ("createLobby".equals(clientMessage.getType())) {
@@ -185,7 +185,6 @@ public class GameServer {
             e.printStackTrace();
         }
     }
-
 
 
     private void sendLobbyUpdate(Game lobby) {

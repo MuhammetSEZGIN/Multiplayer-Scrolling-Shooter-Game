@@ -27,14 +27,15 @@ public class GameClientGUI extends Application {
     private String playerName;
     private String lobbyId;
     private TextArea lobbyPlayersTextArea;
-    private TextArea lobbyChatTextArea;
     private TextField chatField;
     private Canvas gameCanvas;
     private double shipX = 400;
     private double shipY = 300;
     private static final double SHIP_SPEED = 5;
     private Set<KeyCode> pressedKeys = new HashSet<>();
-    private List<String> messages;
+    private Label healthLabel;
+    private Label scoreLabel;
+    private Boolean gameGoingOn;
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Multiplayer Shooter Game");
@@ -202,27 +203,79 @@ public class GameClientGUI extends Application {
     }
 
     private void showGameScreen(Stage primaryStage) {
+        VBox root = new VBox(10);
+        Pane gamePane = new Pane();
         gameCanvas = new Canvas(800, 600);
-        Pane root = new Pane(gameCanvas);
+        gamePane.getChildren().add(gameCanvas);
+
+        healthLabel = new Label("Health: ");
+        scoreLabel = new Label("Score: ");
+        root.getChildren().addAll(healthLabel, scoreLabel, gamePane);
+
         Scene scene = new Scene(root, 800, 600);
 
         gameClient.setGameCanvas(gameCanvas);
+        gameGoingOn = true;
 
         gameClient.setGameUpdateCallback(gameState -> {
             Platform.runLater(() -> {
-                drawGameState(gameState);
+                if(gameState.getType().equals("GameGoingOn")) {
+                    drawGameState(gameState);
+                    updatePlayerStats(gameState);
+                }
+                else{
+                    gameGoingOn = false;
+                    gameOverScreen(primaryStage);
+
+                }
             });
         });
 
-        // Klavye olaylarını dinleme
         scene.setOnKeyPressed(this::handleKeyPressed);
         scene.setOnKeyReleased(this::handleKeyReleased);
-
-        // Start the game loop for continuous movement
-        startGameLoop();
+        if(gameGoingOn){
+            startGameLoop();
+        }
 
         primaryStage.setScene(scene);
         primaryStage.show();
+    }
+
+    private void gameOverScreen(Stage primaryStage) {
+        VBox root = new VBox(10);
+        Scene scene = new Scene(root, 300, 200);
+
+        Label gameOverLabel = new Label("Game Over!");
+        TextArea scoresTextArea = new TextArea();
+        scoresTextArea.setEditable(false);
+        Button returnToLobbyButton = new Button("Return to Lobby");
+
+        gameClient.setGameOverCallback(players -> {
+            Platform.runLater(() -> {
+                for (String player : players) {
+                    scoresTextArea.appendText(player + "\n");
+                }
+            });
+        });
+        returnToLobbyButton.setOnAction(event -> {
+            showLobbyOptions(primaryStage);
+        });
+
+        root.getChildren().addAll(gameOverLabel, returnToLobbyButton);
+
+        primaryStage.setScene(scene);
+
+    }
+
+    private void updatePlayerStats(GameState gameState) {
+        for (Ship ship : gameState.getShips()) {
+            if (ship.getId() == playerName.hashCode()) {
+                healthLabel.setText("Health: " + ship.getHealth());
+                scoreLabel.setText("Score: " + ship.getScore());
+                System.out.println("Health: " + ship.getHealth() + ", Score: " + ship.getScore());
+                break;
+            }
+        }
     }
 
     private void handleKeyPressed(KeyEvent event) {
@@ -266,6 +319,7 @@ public class GameClientGUI extends Application {
         GraphicsContext gc = gameCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
+
         // Düşmanları çiz
         for (Enemy enemy : gameState.getEnemies()) {
             gc.setFill(Color.RED);
@@ -276,6 +330,7 @@ public class GameClientGUI extends Application {
         for (Ship ship : gameState.getShips()) {
             gc.setFill(Color.BLUE);
             gc.fillRect(ship.getX(), ship.getY(), ship.getWidth(), ship.getHeight());
+
         }
 
         // Mermileri çiz
