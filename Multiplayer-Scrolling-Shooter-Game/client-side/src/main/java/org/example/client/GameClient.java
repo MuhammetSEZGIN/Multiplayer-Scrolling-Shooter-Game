@@ -5,16 +5,12 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Consumer;
-import org.json.JSONObject;
-import javafx.scene.canvas.Canvas;
+
 import org.example.game.GameState;
 import com.google.gson.Gson;
 
-import javax.swing.*;
 
 public class GameClient {
     private static final String SERVER_ADDRESS = "localhost";
@@ -26,20 +22,13 @@ public class GameClient {
 
     private String playerName;
     private String lobbyId;
-    private Canvas gameCanvas;
     private Consumer<List<String>> lobbyUpdateCallback;
     private Consumer<GameState> gameUpdateCallback;
     private  Consumer <String> chatCallback;
     private Consumer<String> lobbyCreatedCallback;
-    private Consumer<List<String>> gameOverCallback;
-
+    private Consumer<String> lobbyJoinCallback;
     public GameClient(String playerName) {
         this.playerName = playerName;
-    }
-
-    public GameClient(String playerName, String lobbyId) {
-        this.playerName = playerName;
-        this.lobbyId = lobbyId;
     }
 
     public void start() {
@@ -50,10 +39,6 @@ public class GameClient {
 
             new Thread(new ServerListener()).start();
 
-            // Lobiye katılma veya oluşturma mesajı gönderme
-            if (lobbyId != null) {
-                sendMessage(new ClientMessage("joinLobby", lobbyId, 0, 0, playerName));
-            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -63,10 +48,7 @@ public class GameClient {
         try {
 
             new Thread(new ServerListener()).start();
-            // lobi id oluşturma
-            //String newLobbyId = UUID.randomUUID().toString();
-            // Lobi oluşturma mesajı gönderme
-            sendMessage(new ClientMessage("createLobby", null, 0, 0, playerName));
+            sendMessage(new ClientMessage(ClientRequestType.createLobby, null, 0, 0, playerName));
         } catch ( Exception e) {
             e.printStackTrace();
         }
@@ -83,18 +65,19 @@ public class GameClient {
     }
 
     public void requestAvailableLobbies() {
-        sendMessage(new ClientMessage("getLobbies", null, 0, 0, playerName));
+        sendMessage(new ClientMessage(ClientRequestType.getLobbies, null, 0, 0, playerName));
+    }
+    public void sendJoinLobbyMessage(String lobbyId) {
+        sendMessage(new ClientMessage(ClientRequestType.joinLobby, lobbyId, 0, 0, playerName));
     }
 
     public void startGame() {
-        sendMessage(new ClientMessage("startGame", lobbyId, 0, 0, playerName));
+        sendMessage(new ClientMessage(ClientRequestType.startGame, lobbyId, 0, 0, playerName));
     }
 
     public void sendChatMessage(String message) {
-        sendMessage(new ClientMessage("chat", lobbyId, 0, 0, playerName, message));
+        sendMessage(new ClientMessage(ClientRequestType.chat, lobbyId, 0, 0, playerName, message));
     }
-
-
 
     private class ServerListener implements Runnable {
         @Override
@@ -102,26 +85,25 @@ public class GameClient {
             try {
                 String message;
                 while ((message = in.readLine()) != null) {
-                    //System.out.println("Server: " + message);
 
                     // Gelen mesajı işleme
                     Gson gson = new Gson();
                     ServerMessage serverMessage = gson.fromJson(message, ServerMessage.class);
 
                     switch (serverMessage.getType()) {
-                        case "lobbyCreated":
+                        case lobbyCreated:
                             lobbyId = serverMessage.getLobbyId();
                             if (lobbyCreatedCallback != null) {
                                 lobbyCreatedCallback.accept(lobbyId);
                             }
                             break;
-                        case "chat":
+                        case chat:
                             if(chatCallback != null){
-                                System.out.println("Server chat message: " + serverMessage.getState());
-                                chatCallback.accept(serverMessage.getState());
+                                System.out.println("Server chat message: " + serverMessage.getMessage());
+                                chatCallback.accept(serverMessage.getMessage());
                             }
                             break;
-                        case "lobbyUpdate":
+                        case lobbyUpdate:
                             if (lobbyUpdateCallback != null) {
                                 lobbyId = serverMessage.getLobbyId();
                                 lobbyUpdateCallback.accept(serverMessage.getPlayers());
@@ -129,24 +111,22 @@ public class GameClient {
 
                             }
                             break;
-                        case "gameState":
-                            //System.out.println("Received game state: " + serverMessage.getGameState().getShips().get(0).getId());
-                                if(gameUpdateCallback != null)
-                                gameUpdateCallback.accept(serverMessage.getGameState());
-
+                        case gameState:
+                                if(gameUpdateCallback != null) {
+                                    gameUpdateCallback.accept(serverMessage.getGameState());
+                                }
                             break;
-                        case "lobbiesList":
+                        case lobbiesList:
                             if (lobbyUpdateCallback != null) {
                                 System.out.println("Server message type: " + serverMessage.getType());
                                 System.out.println("Server message lobbyId: " + serverMessage.getLobbies());
                                 lobbyUpdateCallback.accept(serverMessage.getLobbies());
                             }
                             break;
-                        case "gameOver":
-                            if (gameOverCallback != null) {
-                                gameOverCallback.accept(serverMessage.getPlayers());
+                        case lobbyJoinState:
+                            if (lobbyJoinCallback != null) {
+                                lobbyJoinCallback.accept(serverMessage.getMessage());
                             }
-
                             break;
                     }
                 }
@@ -174,17 +154,10 @@ public class GameClient {
     public void setLobbyCreatedCallback(Consumer<String> callback) {
         this.lobbyCreatedCallback = callback;
     }
-
-    public void setGameOverCallback(Consumer<List<String>> callback) {
-        this.gameOverCallback = callback;
-    }
+    public void setLobbyJoinCallback(Consumer<String> callback) {this.lobbyJoinCallback = callback;}
 
     public void setGameUpdateCallback(Consumer<GameState> callback) {
         this.gameUpdateCallback = callback;
-    }
-
-    public void setGameCanvas(Canvas gameCanvas) {
-        this.gameCanvas = gameCanvas;
     }
 
     public Consumer<String> getChatCallback() {

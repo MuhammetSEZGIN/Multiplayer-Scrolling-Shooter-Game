@@ -7,7 +7,7 @@ public class Bullet extends GameObject {
     private int speed;
 
     public Bullet(double x, double y, int speed, ClientHandler owner) {
-        super(0, x, y, 10, 10); // Örnek olarak genişlik ve yükseklik 10 olarak ayarlandı
+        super(0, x, y, 20, 30);
         this.speed = speed;
         this.owner = owner;
     }

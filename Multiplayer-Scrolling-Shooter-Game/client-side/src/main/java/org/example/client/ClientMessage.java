@@ -1,7 +1,7 @@
 package org.example.client;
 
 public class ClientMessage {
-    private String type;
+    private ClientRequestType type;
     private String lobbyId;
     private double x;
     private double y;
@@ -10,7 +10,7 @@ public class ClientMessage {
 
 
     private String Message; // Yeni eklendi
-    public ClientMessage(String type, String lobbyId, double x, double y, String playerName, String Message) {
+    public ClientMessage(ClientRequestType type, String lobbyId, double x, double y, String playerName, String Message) {
         this.type = type;
         this.lobbyId = lobbyId;
         this.x = x;
@@ -18,7 +18,7 @@ public class ClientMessage {
         this.playerName = playerName;
         this.Message = Message; // Yeni eklendi
     }
-    public ClientMessage(String type, String lobbyId, double x, double y, String playerName) {
+    public ClientMessage(ClientRequestType type, String lobbyId, double x, double y, String playerName) {
         this.type = type;
         this.lobbyId = lobbyId;
         this.x = x;
@@ -29,7 +29,7 @@ public class ClientMessage {
 
     // Getters and setters
 
-    public String getType() {
+    public ClientRequestType getType() {
         return type;
     }
     public String getMessage() {
@@ -39,7 +39,7 @@ public class ClientMessage {
     public void setMessage(String message) {
         Message = message;
     }
-    public void setType(String type) {
+    public void setType(ClientRequestType type) {
         this.type = type;
     }
 
