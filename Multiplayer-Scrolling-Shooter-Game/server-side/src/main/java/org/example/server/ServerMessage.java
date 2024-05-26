@@ -5,29 +5,29 @@ import org.example.game.GameState;
 import java.util.List;
 
 public class ServerMessage {
-    private String type;
+    private ServerResponseType type;
     private List<String> lobbies;
     private List<String> players;
     private GameState gameState;
-    private String lobbyId; // Yeni eklendi
-    private String state;
+    private String lobbyId;
+    private String message;
 
-    public String getState() {
-        return state;
+    public String getMessage() {
+        return message;
     }
 
-    public void setState(String state) {
-        this.state = state;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public ServerMessage() {
     }
 
-    public String getType() {
+    public ServerResponseType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ServerResponseType type) {
         this.type = type;
     }
 

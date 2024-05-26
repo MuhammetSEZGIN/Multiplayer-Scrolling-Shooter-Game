@@ -7,7 +7,7 @@ public class GameState {
     private List<Enemy> enemies;
     private List<Bullet> bullets;
     private List<String> gameScores;
-    private String type;
+    private GameStateType type;
 
     public List<String> getGameScores() {
         return gameScores;
@@ -41,11 +41,11 @@ public class GameState {
         this.bullets = bullets;
     }
 
-    public String getType() {
+    public GameStateType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(GameStateType type) {
         this.type = type;
     }
 }

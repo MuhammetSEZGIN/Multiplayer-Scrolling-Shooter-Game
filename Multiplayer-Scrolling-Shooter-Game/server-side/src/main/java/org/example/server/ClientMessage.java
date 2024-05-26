@@ -2,7 +2,7 @@ package org.example.server;
 
 
 public class ClientMessage {
-    private String type;
+    private ClientRequestType type;
     private String lobbyId;
     private double x;
     private double y;
@@ -11,21 +11,13 @@ public class ClientMessage {
 
 
 
-    public ClientMessage(String type, String lobbyId, double x, double y, String playerName, String Message) {
+    public ClientMessage(ClientRequestType type, String lobbyId, double x, double y, String playerName, String Message) {
         this.type = type;
         this.lobbyId = lobbyId;
         this.x = x;
         this.y = y;
         this.playerName = playerName;
         this.Message = Message; // Yeni eklendi
-    }
-    public ClientMessage(String type, String lobbyId, double x, double y, String playerName) {
-        this.type = type;
-        this.lobbyId = lobbyId;
-        this.x = x;
-        this.y = y;
-        this.playerName = playerName;
-        this.Message = "No message"; // Yeni eklendi
     }
 
 
@@ -36,11 +28,11 @@ public class ClientMessage {
     public void setMessage(String message) {
         Message = message;
     }
-    public String getType() {
+    public ClientRequestType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ClientRequestType type) {
         this.type = type;
     }
 

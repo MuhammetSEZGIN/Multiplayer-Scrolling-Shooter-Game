@@ -11,7 +11,6 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class GameServer {
     private static final int PORT = 12345;
@@ -22,7 +21,7 @@ public class GameServer {
     private Timer gameUpdateTimer;
 
     public GameServer() {
-        pool = Executors.newFixedThreadPool(10);
+        pool = Executors.newFixedThreadPool(20);
         clients = Collections.synchronizedList(new ArrayList<>());
         lobbies = new HashMap<>();
         objectMapper = new ObjectMapper();
@@ -67,7 +66,7 @@ public class GameServer {
 
         JSONObject clientMessageJson = new JSONObject(message);
 
-        String type = clientMessageJson.getString("type");
+        ClientRequestType type = ClientRequestType.valueOf(clientMessageJson.getString("type"));
         String lobbyId= null;
 
         if(clientMessageJson.has("lobbyId")){
@@ -79,28 +78,28 @@ public class GameServer {
         String playerName = clientMessageJson.getString("playerName");
         String Message = clientMessageJson.getString("Message");
         sender.setPlayerName(playerName);
+
         ClientMessage clientMessage = new ClientMessage(type, lobbyId, x, y, playerName, Message);
 
-//        System.out.println("clientMessage: \n "+
-//                 "LobbyId:"+ clientMessage.getLobbyId()+
-//                "\n Player Name: "+ clientMessage.getPlayerName()
-//                );
-        if (clientMessage.getLobbyId() != null) {
-            Game lobby = lobbies.get(clientMessage.getLobbyId());
-            if (lobby != null) {
-                // System.out.println(clientMessage.getMessage());
-                lobby.processMessage(clientMessage, sender);
-            }
-        } else if ("createLobby".equals(clientMessage.getType())) {
+
+        if (clientMessage.getType().equals(ClientRequestType.createLobby)) {
             createLobby(sender, clientMessage.getPlayerName());
-        } else if ("joinLobby".equals(clientMessage.getType())) {
+        }
+        else if (clientMessage.getType().equals(ClientRequestType.getLobbies)) {
+            sendLobbiesList(sender);
+        }
+        else if (clientMessage.getType().equals(ClientRequestType.joinLobby)) {
             System.out.println(clientMessage.getPlayerName()+" "+clientMessage.getLobbyId());
             joinLobby(clientMessage.getLobbyId(), sender, clientMessage.getPlayerName());
         }
+        else if (clientMessage.getLobbyId() != null) {
+            Game lobby = lobbies.get(clientMessage.getLobbyId());
+            if (lobby != null) {
+                lobby.processMessage(clientMessage, sender);
+            }
 
-         else if ("getLobbies".equals(clientMessage.getType())) {
-            sendLobbiesList(sender);
         }
+
     }
 
     public void sendChatMassage(String playerName,String message, String lobbyId){
@@ -109,21 +108,13 @@ public class GameServer {
         System.out.println("Chat message: "+ message);
         System.out.println("lobby: "+ lobby.getLobbyId());
         ServerMessage serverMessage = new ServerMessage();
-        serverMessage.setType("chat");
+        serverMessage.setType(ServerResponseType.chat);
         serverMessage.setLobbyId(lobbyId);
         message= playerName +": "+ message;
-        serverMessage.setState(message);
-        String chatMessage = null;
-        try {
-            chatMessage = objectMapper.writeValueAsString(serverMessage);
+        serverMessage.setMessage(message);
 
-            if (lobby != null) {
-                synchronized (lobby.getClients()) {
-                    for (ClientHandler client : lobby.getClients()) {
-                        client.sendMessage(chatMessage);
-                    }
-                }
-            }
+        try {
+            broadcast(objectMapper.writeValueAsString(serverMessage), lobbyId);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -135,17 +126,18 @@ public class GameServer {
         Game lobby = new Game(this, newLobbyId);
         lobby.addClient(creator, playerName);
         lobbies.put(newLobbyId, lobby);
-        sendLobbyUpdate(lobby);
 
         // oyuncu listesi oluştur lobide göstermek için
         List<String> players = new ArrayList<>();
         players.add(playerName);
 
-       // server mesajı oluştur
+        sendLobbyUpdate(lobby);
+
+        // server mesajı oluştur
         ServerMessage serverMessage = new ServerMessage();
-        serverMessage.setType("lobbyCreated");
+        serverMessage.setType(ServerResponseType.lobbyCreated);
         serverMessage.setLobbyId(newLobbyId);
-        serverMessage.setState("waiting to start");
+        serverMessage.setMessage("waiting to start");
         serverMessage.setPlayers(players);
 
         try {
@@ -158,24 +150,48 @@ public class GameServer {
 
     public void joinLobby(String lobbyId, ClientHandler client, String playerName) {
         Game lobby = lobbies.get(lobbyId);
+        String message = null;
         if (lobby != null) {
             if (lobby.getClients().size() < 3) {
                 lobby.addClient(client, playerName);
-                System.out.println("Lobby found");
-
+                sendlobbyJoinState(client,null);
                 sendLobbyUpdate(lobby);
-            } else {
-                client.sendMessage("Lobby is full");
             }
-        } else {
-            client.sendMessage("Lobby not found");
+            else {
+                message = "Lobby is full";
+                sendlobbyJoinState(client, message);
+            }
+        }
+        else {
+            message = "Lobby not found";
+            sendlobbyJoinState(client, message);
+        }
+
+    }
+
+    private void sendlobbyJoinState(ClientHandler client, String message) {
+        ServerMessage serverMessage = new ServerMessage();
+        serverMessage.setType(ServerResponseType.lobbyJoinState);
+        serverMessage.setMessage(message);
+        try {
+            client.sendMessage(objectMapper.writeValueAsString(serverMessage));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     private void sendLobbiesList(ClientHandler client) {
+        if (!lobbies.isEmpty()) {
+            for (Game lobby : lobbies.values()) {
+                if (lobby.isGameStateTypeGameOver() || (lobby.getClients().isEmpty())) {
+                    lobbies.remove(lobby.getLobbyId());
+                }
+            }
+        }
+
         List<String> availableLobbies = new ArrayList<>(lobbies.keySet());
         ServerMessage serverMessage = new ServerMessage();
-        serverMessage.setType("lobbiesList");
+        serverMessage.setType(ServerResponseType.lobbiesList);
         serverMessage.setLobbies(availableLobbies);
 
         try {
@@ -189,7 +205,7 @@ public class GameServer {
 
     private void sendLobbyUpdate(Game lobby) {
         ServerMessage serverMessage = new ServerMessage();
-        serverMessage.setType("lobbyUpdate");
+        serverMessage.setType(ServerResponseType.lobbyUpdate);
         List<String> players = new ArrayList<>();
         for (ClientHandler client : lobby.getClients()) {
             String playerName = client.getPlayerName();
@@ -199,17 +215,15 @@ public class GameServer {
         }
         serverMessage.setPlayers(players);
         serverMessage.setLobbyId(lobby.getLobbyId());
-        String state = "player added:"+ players.get(players.size() - 1);
-        serverMessage.setState(state);
+        String message = "player added:"+ players.get(players.size() - 1);
+        serverMessage.setMessage(message);
         try {
-            String message = objectMapper.writeValueAsString(serverMessage);
             updateGames();
-            broadcast(message, lobby.getLobbyId());
+            broadcast(objectMapper.writeValueAsString(serverMessage), lobby.getLobbyId());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 
 
     private void updateGames() {

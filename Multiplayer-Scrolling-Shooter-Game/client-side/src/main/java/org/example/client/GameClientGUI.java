@@ -5,18 +5,15 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.paint.Color;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.scene.control.*;
 import javafx.animation.AnimationTimer;
-import org.example.game.Bullet;
-import org.example.game.Enemy;
-import org.example.game.GameState;
-import org.example.game.Ship;
+import org.example.game.*;
 
 import java.util.HashSet;
 import java.util.List;
@@ -31,14 +28,25 @@ public class GameClientGUI extends Application {
     private Canvas gameCanvas;
     private double shipX = 400;
     private double shipY = 300;
-    private static final double SHIP_SPEED = 5;
+    private static final double SHIP_SPEED = 300;
     private Set<KeyCode> pressedKeys = new HashSet<>();
     private Label healthLabel;
     private Label scoreLabel;
-    private Boolean gameGoingOn;
+    private GameStateType gameStateType;
+    private AnimationTimer gameLoop;
+    private Image airplaneImage;
+    private Image kamikazeImage;
+    private Image bulletImage;
+    private Image backgroundImage;
 
     @Override
     public void start(Stage primaryStage) {
+
+        airplaneImage = new Image(getClass().getResource("/images/ship.png").toExternalForm());
+        kamikazeImage = new Image(getClass().getResource("/images/kamikaze.png").toExternalForm());
+        bulletImage = new Image(getClass().getResource("/images/bullet.png").toExternalForm());
+        backgroundImage = new Image(getClass().getResource("/images/background1.png").toExternalForm());
+
         primaryStage.setTitle("Multiplayer Shooter Game");
 
         VBox root = new VBox(10);
@@ -67,15 +75,12 @@ public class GameClientGUI extends Application {
 
         Button joinLobbyButton = new Button("Join Lobby");
         joinLobbyButton.setOnAction(event -> {
-            // GameClient nesnesini başlat
             // Bağlantıyı başlat
             showAvailableLobbies(primaryStage);
         });
 
         Button createLobbyButton = new Button("Create Lobby");
-        createLobbyButton.setOnAction(event -> {
-            createLobby(primaryStage);
-        });
+        createLobbyButton.setOnAction(event -> createLobby(primaryStage));
 
         root.getChildren().addAll(joinLobbyButton, createLobbyButton);
 
@@ -88,12 +93,12 @@ public class GameClientGUI extends Application {
 
         ListView<String> lobbiesListView = new ListView<>();
         Button refreshButton = new Button("Refresh");
-//        lobbiesTextArea = new TextArea();
-//        lobbiesTextArea.setEditable(false);
 
-        refreshButton.setOnAction(event -> {
-            gameClient.requestAvailableLobbies();
-        });
+        Button returnTo = new Button("Back");
+        returnTo.setOnAction(
+                event-> showLobbyOptions(primaryStage)
+        );
+        refreshButton.setOnAction(event -> gameClient.requestAvailableLobbies());
 
         Button joinButton = new Button("Join");
         joinButton.setOnAction(event -> {
@@ -103,17 +108,13 @@ public class GameClientGUI extends Application {
             }
         });
 
-        gameClient.setLobbyUpdateCallback(lobbies -> {
-            Platform.runLater(() -> {
-                System.out.println("Updating lobby list: " + lobbies); // Debugging line
-                lobbiesListView.getItems().setAll(lobbies);
+        gameClient.setLobbyUpdateCallback(lobbies -> Platform.runLater(() -> {
+            System.out.println("Updating lobby list: " + lobbies); // Debugging line
+            lobbiesListView.getItems().setAll(lobbies);
 
-            });
-        });
+        }));
 
-
-
-        root.getChildren().addAll(lobbiesListView, refreshButton, joinButton);
+        root.getChildren().addAll(lobbiesListView, refreshButton, joinButton, returnTo);
 
         primaryStage.setScene(scene);
 
@@ -121,23 +122,48 @@ public class GameClientGUI extends Application {
         refreshButton.fire();
     }
 
-    private void joinLobby(String lobbyId, Stage primaryStage) {
-        // gameClient = new GameClient(playerName, lobbyId);
-        gameClient.setLobbyId(lobbyId);
-        gameClient.start();
 
-        showLobbyScreen(primaryStage, gameClient);
+    private void joinLobby(String lobbyId, Stage primaryStage) {
+        gameClient.sendJoinLobbyMessage(lobbyId);
+        final boolean[] flag = new boolean[1];
+        flag[0] = true;
+        gameClient.setLobbyJoinCallback(message -> {
+            if (message != null) {
+                Platform.runLater(() -> {
+                    if (message.equals("Lobby is full")){
+                        showAlert(Alert.AlertType.WARNING,"Not joined" , message);
+                    }
+                    else if (message.equals("Lobby not found")){
+                        showAlert(Alert.AlertType.WARNING,"Not joined" , message);
+                    }
+                });
+                flag[0] = false;
+            }
+        });
+
+        if (flag[0]) {
+            showLobbyScreenFromJoin(primaryStage, gameClient);
+        }
+
+    }
+    
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null); // Optional: null means no header text
+        alert.setContentText(message);
+        alert.showAndWait(); // Show the alert and wait for user interaction
     }
 
     private void createLobby(Stage primaryStage) {
-      //
+
         gameClient.createLobby();
         lobbyId = gameClient.getLobbyId();
         System.out.println("Created lobby with ID: " + lobbyId);
-        showLobbyScreen(primaryStage, gameClient);
+        showLobbyScreenFromCreate(primaryStage, gameClient);
     }
 
-    private void showLobbyScreen(Stage primaryStage, GameClient gameClient) {
+    private void showLobbyScreenFromCreate(Stage primaryStage, GameClient gameClient) {
         VBox root = new VBox(10);
         Scene scene = new Scene(root, 300, 200);
 
@@ -150,11 +176,9 @@ public class GameClientGUI extends Application {
         Button startGameButton = new Button("Start Game");
         lobbyId = gameClient.getLobbyId();
 
-        gameClient.setLobbyCreatedCallback(lobbyId -> {
-            Platform.runLater(() -> {
-                root.getChildren().add(new Label("Lobby: " + lobbyId));
-            });
-        });
+        gameClient.setLobbyCreatedCallback(lobbyId -> Platform.runLater(() -> {
+            root.getChildren().add(new Label("Lobby: " + lobbyId));
+        }));
 
 
         Button sendButton = new Button("Send");
@@ -198,8 +222,71 @@ public class GameClientGUI extends Application {
         primaryStage.setScene(scene);
     }
 
+    private void showLobbyScreenFromJoin(Stage primaryStage, GameClient gameClient) {
+        VBox root = new VBox(10);
+        Scene scene = new Scene(root, 300, 200);
+
+        lobbyPlayersTextArea = new TextArea();
+        lobbyPlayersTextArea.setEditable(false);
+
+        chatField = new TextField();
+        chatField.setPromptText("Enter chat message");
+
+        lobbyId = gameClient.getLobbyId();
+
+        Button sendButton = new Button("Send");
+        sendButton.setOnAction(event -> {
+
+            String message = chatField.getText();
+            System.out.println("Message: " + message);
+            if(!(message == null || message.isEmpty())) {
+                gameClient.sendChatMessage(message);
+                chatField.clear();
+            }
+        });
+
+
+        gameClient.setLobbyUpdateCallback(players -> {
+            if (players != null) {
+                Platform.runLater(() -> {
+                    lobbyPlayersTextArea.clear();
+                    for (String player : players) {
+                        if (player != null) {
+                            lobbyPlayersTextArea.appendText(player + " has joined the lobby\n");
+                            lobbyId = gameClient.getLobbyId();
+                            System.out.println("Lobby ID: " + lobbyId);
+                        }
+                    }
+                });
+            }
+        });
+
+        gameClient.setChatCallback(message -> {
+            if (message != null) {
+                Platform.runLater(() -> {
+                    lobbyPlayersTextArea.appendText(  message + "\n");
+                });
+            }
+        });
+
+        gameClient.setGameUpdateCallback(gameState -> {
+            if (gameState != null) {
+                Platform.runLater(() -> {
+                    if(gameState.getType().equals(GameStateType.GameGoingOn)){
+                        showGameScreen(primaryStage);
+                    }
+                });
+            }
+        });
+
+        root.getChildren().addAll(lobbyPlayersTextArea, chatField,sendButton);
+
+        primaryStage.setScene(scene);
+    }
+
     private void startGame(Stage primaryStage) {
         gameClient.startGame();
+        pressedKeys.clear();
         showGameScreen(primaryStage);
     }
 
@@ -207,36 +294,43 @@ public class GameClientGUI extends Application {
         VBox root = new VBox(10);
         Pane gamePane = new Pane();
         gameCanvas = new Canvas(800, 600);
-        gamePane.getChildren().add(gameCanvas);
+// Sağlık ve skor etiketlerini içeren VBox
+        VBox labelBox = new VBox(10);
+        labelBox.setStyle("-fx-background-color: rgba(0, 0, 0, 0);"); // VBox'ı transparan yap
+        labelBox.setLayoutX(10); // Etiketlerin x konumu
+        labelBox.setLayoutY(10); // Etiketlerin y konumu
 
         healthLabel = new Label("Health: ");
+        healthLabel.setStyle("-fx-text-fill: red; -fx-font-size: 20px; -fx-font-weight: bold;"); // Sağlık etiketi stilini ayarla
+
         scoreLabel = new Label("Score: ");
-        root.getChildren().addAll(healthLabel, scoreLabel, gamePane);
+        scoreLabel.setStyle("-fx-text-fill: blue; -fx-font-size: 20px; -fx-font-weight: bold;"); // Skor etiketi stilini ayarla
+
+        labelBox.getChildren().addAll(healthLabel, scoreLabel); // Etiketleri VBox'a ekle
+        gamePane.getChildren().addAll(gameCanvas, labelBox); // Canvas ve VBox'ı gamePane'e ekle
+        root.getChildren().add(gamePane); // gamePane'i root'a ekle
 
         Scene scene = new Scene(root, 800, 600);
 
-        gameClient.setGameCanvas(gameCanvas);
-        gameGoingOn = true;
+        gameStateType = GameStateType.GameGoingOn;
 
         gameClient.setGameUpdateCallback(gameState -> {
             Platform.runLater(() -> {
-                if(!gameState.getType().equals("gameOver")){
+                if (!gameState.getType().equals(GameStateType.GameOver)) {
                     drawGameState(gameState);
                     updatePlayerStats(gameState);
-                    System.out.println("Game is going on: " + gameGoingOn);
-                }
-                else{
-                    gameGoingOn = false;
+                    System.out.println("Game is going on: " + gameStateType);
+                } else {
+                    gameStateType = GameStateType.GameOver;
                     List<String> gameScores = gameState.getGameScores();
                     gameOverScreen(primaryStage, gameScores);
-
                 }
             });
         });
 
         scene.setOnKeyPressed(this::handleKeyPressed);
         scene.setOnKeyReleased(this::handleKeyReleased);
-        if(gameGoingOn){
+        if (gameStateType.equals(GameStateType.GameGoingOn)) {
             startGameLoop();
         }
 
@@ -253,13 +347,17 @@ public class GameClientGUI extends Application {
         scoresTextArea.setEditable(false);
         Button returnToLobbyButton = new Button("Return to Lobby");
 
-        for (String scores : gameScores) {
-            Platform.runLater(() -> {
-                System.out.println("Scores: " + scores);
-                scoresTextArea.appendText(scores + "\n");
+        if (gameScores != null){
+            for (String scores : gameScores) {
+
+                Platform.runLater(() -> {
+                            System.out.println("Scores: " + scores);
+                            scoresTextArea.appendText(scores + "\n");
+                        }
+                );
             }
-            );
         }
+
 
         returnToLobbyButton.setOnAction(event -> {
             showLobbyOptions(primaryStage);
@@ -285,7 +383,7 @@ public class GameClientGUI extends Application {
     private void handleKeyPressed(KeyEvent event) {
         pressedKeys.add(event.getCode());
         if (event.getCode() == KeyCode.SPACE) {
-            gameClient.sendMessage(new ClientMessage("shoot", gameClient.getLobbyId(), shipX, shipY, playerName));
+            gameClient.sendMessage(new ClientMessage(ClientRequestType.shoot, gameClient.getLobbyId(), shipX, shipY, playerName));
         }
     }
 
@@ -294,53 +392,72 @@ public class GameClientGUI extends Application {
     }
 
     private void startGameLoop() {
-        AnimationTimer gameLoop = new AnimationTimer() {
+        if (gameLoop != null) {
+            gameLoop.stop(); // Önceki döngüyü durdur
+        }
+
+        gameLoop = new AnimationTimer() {
+            private long lastUpdate = 0;
+
             @Override
             public void handle(long now) {
-                if (pressedKeys.contains(KeyCode.UP)) {
-                    shipY -= SHIP_SPEED;
-                }
-                if (pressedKeys.contains(KeyCode.DOWN)) {
-                    shipY += SHIP_SPEED;
-                }
-                if (pressedKeys.contains(KeyCode.LEFT)) {
-                    shipX -= SHIP_SPEED;
-                }
-                if (pressedKeys.contains(KeyCode.RIGHT)) {
-                    shipX += SHIP_SPEED;
+                if (lastUpdate == 0) {
+                    lastUpdate = now;
+                    return;
                 }
 
-                if (!pressedKeys.isEmpty()) {
-                    gameClient.sendMessage(new ClientMessage("move", gameClient.getLobbyId(), shipX, shipY, playerName));
-                    // System.out.println("Sent move message with coordinates: (" + shipX + ", " + shipY + ")");
+                double deltaTime = (now - lastUpdate) / 1_000_000_000.0; // convert nanoseconds to seconds
+                lastUpdate = now;
+
+                double deltaX = 0;
+                double deltaY = 0;
+
+                if (pressedKeys.contains(KeyCode.UP)) {
+                    deltaY -= SHIP_SPEED * deltaTime;
+                }
+                if (pressedKeys.contains(KeyCode.DOWN)) {
+                    deltaY += SHIP_SPEED * deltaTime;
+                }
+                if (pressedKeys.contains(KeyCode.LEFT)) {
+                    deltaX -= SHIP_SPEED * deltaTime;
+                }
+                if (pressedKeys.contains(KeyCode.RIGHT)) {
+                    deltaX += SHIP_SPEED * deltaTime;
+                }
+
+                shipX += deltaX;
+                shipY += deltaY;
+
+                if (deltaX != 0 || deltaY != 0) {
+                    gameClient.sendMessage(new ClientMessage(ClientRequestType.move, gameClient.getLobbyId(), shipX, shipY, playerName));
                 }
             }
         };
         gameLoop.start();
     }
 
+
+
     private void drawGameState(GameState gameState) {
         GraphicsContext gc = gameCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
+        // Arka planı çiz
+        gc.drawImage(backgroundImage, 0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
         // Düşmanları çiz
         for (Enemy enemy : gameState.getEnemies()) {
-            gc.setFill(Color.RED);
-            gc.fillRect(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight());
+            gc.drawImage(kamikazeImage, enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight());
         }
 
         // Gemileri çiz
         for (Ship ship : gameState.getShips()) {
-            gc.setFill(Color.BLUE);
-            gc.fillRect(ship.getX(), ship.getY(), ship.getWidth(), ship.getHeight());
-
+            gc.drawImage(airplaneImage, ship.getX(), ship.getY(), ship.getWidth(), ship.getHeight());
         }
 
         // Mermileri çiz
         for (Bullet bullet : gameState.getBullets()) {
-            gc.setFill(Color.YELLOW);
-            gc.fillRect(bullet.getX(), bullet.getY(), bullet.getWidth(), bullet.getHeight());
+            gc.drawImage(bulletImage, bullet.getX(), bullet.getY(), bullet.getWidth(), bullet.getHeight());
         }
     }
 
