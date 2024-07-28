@@ -1,5 +1,10 @@
 # Multiplayer-Scrolling-Shooter-Game
+Game Objective:
+In this 3-player 2D arcade game, your goal is to gather in the lobby and fight against enemy ships to score the highest points and achieve victory. Skillfully navigate your ship using keyboard controls, defeat enemies, and climb to the top of the leaderboard!
 
+## Protocol
+
+For detailed information about the game's protocol, please refer to the [Protocol Document (PDF)](Multiplayer-Scrolling-Shooter-Game/protocol/protocol_document.pdf).
 ## Screenshots
 
 ![Main Menu](Multiplayer-Scrolling-Shooter-Game/pictures/mainmenü.png)  
@@ -23,8 +28,6 @@
 ![Game Stats](Multiplayer-Scrolling-Shooter-Game/pictures/gamestats.png)  
 *Figure 7: After game finished all calculated points of players shown on the screen*
 
-## Protocol
 
-For detailed information about the game's protocol, please refer to the [Protocol Document (PDF)](Multiplayer-Scrolling-Shooter-Game/protocol/protocol_document.pdf).
 
 ---
