@@ -1,42 +1,29 @@
 # Multiplayer-Scrolling-Shooter-Game
 ## Screenshots
 
-![](Multiplayer-Scrolling-Shooter-Game/pictures/mainmenü.png)
+![Main Menu](Multiplayer-Scrolling-Shooter-Game/pictures/mainmenü.png)
+*Figure 1: Main menu*
 
-![Zone 1](path/to/zone1_image.png)
-*Figure 2: The peaceful habitat where humans can live comfortably.*
+![Info](Multiplayer-Scrolling-Shooter-Game/pictures/infoscreen.png)
+*Figure 2: Game information screen*
 
-![Zone 2](path/to/zone2_image.png)
-*Figure 3: The area where plants and animals have evolved to be larger.*
+![Lobby](Multiplayer-Scrolling-Shooter-Game/pictures/lobby.png)
+*Figure 3: The screen where players can chat*
 
-![Zone 3](path/to/zone3_image.png)
-*Figure 4: The wild zone with fierce plants and animals.*
+![Lobby Options](Multiplayer-Scrolling-Shooter-Game/pictures/lobbyoptions.png)
+*Figure 4*
+![Find Lobbies](Multiplayer-Scrolling-Shooter-Game/pictures/mevcutlobiler.png)
+*Figure 5: The screen that shows available lobbies to players*
 
-## Character Design
+![Find Lobbies](Multiplayer-Scrolling-Shooter-Game/pictures/oyunici.png)
+*Figure 6: The screen that shows game play*
 
-Our main character is a young, cheerful adventurer with a passion for exploring the forest's depths. Inspired by Indiana Jones, the character sports a big hat, curly hair, and large eyes, giving a charming and animated look.
 
-![Character Design](path/to/character_design_image.png)
+![Find Lobbies](Multiplayer-Scrolling-Shooter-Game/pictures/gamestats.png)
+*Figure 7: After game finished all calculated points of players shown on the screen*
 
-## Zones
+## Protocol
 
-1. **Zone 1: The Peaceful Habitat**
-   - A calm and serene area where humans can reside.
-   - Features soft, vibrant colors and friendly creatures.
+For detailed information about the game's protocol, please refer to the [Protocol Document (PDF)](Multiplayer-Scrolling-Shooter-Game/protokol.pdf).
 
-2. **Zone 2: The Evolved Region**
-   - Home to larger plants and animals adapted to tougher conditions.
-   - Displays a balance between beauty and challenges.
 
-3. **Zone 3: The Wild Frontier**
-   - A more dangerous area with fierce flora and fauna.
-   - Showcases darker tones and more intense gameplay elements.
-
-## Installation
-
-To install and play Magical Forest Adventure, follow these steps:
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/magical-forest-adventure.git
-   cd magical-forest-adventure
