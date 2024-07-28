@@ -13,8 +13,8 @@ import com.google.gson.Gson;
 
 
 public class GameClient {
-    private static final String SERVER_ADDRESS = "localhost";
-    private static final int SERVER_PORT = 12345;
+    private static final String SERVER_ADDRESS = "25.53.113.157";
+    private static final int SERVER_PORT = 2323;
     private Socket socket;
     private BufferedReader in;
     private PrintWriter out;
@@ -49,6 +49,7 @@ public class GameClient {
 
             new Thread(new ServerListener()).start();
             sendMessage(new ClientMessage(ClientRequestType.createLobby, null, 0, 0, playerName));
+            System.out.println("Lobby creating...");
         } catch ( Exception e) {
             e.printStackTrace();
         }
@@ -57,7 +58,7 @@ public class GameClient {
     public void sendMessage(ClientMessage clientMessage) {
         if (out != null) {
             String message = new Gson().toJson(clientMessage);
-            // System.out.println("Sending message: " + message);
+            System.out.println("Sending message: " + message);
             out.println(message);
         } else {
             System.out.println("Output stream is null, message not sent.");

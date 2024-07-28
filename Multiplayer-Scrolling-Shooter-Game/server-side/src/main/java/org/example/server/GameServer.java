@@ -6,6 +6,7 @@ import org.example.game.Game;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -13,7 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
 public class GameServer {
-    private static final int PORT = 12345;
+    private static final int PORT = 2323;
+    private static final String SERVER_HOSTNAME = "25.53.113.157"; // Or your public IP
     private ExecutorService pool;
     private List<ClientHandler> clients;
     private Map<String, Game> lobbies;
@@ -35,7 +37,7 @@ public class GameServer {
     }
 
     public void start() {
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+        try (ServerSocket serverSocket = new ServerSocket(PORT, 0, InetAddress.getByName(SERVER_HOSTNAME))) {
             System.out.println("Server is running on port " + PORT);
 
             while (true) {
