@@ -4,7 +4,7 @@ In this 3-player 2D arcade game, your goal is to gather in the lobby and fight a
 
 ## Protocol
 
-For detailed information about the game's protocol, please refer to the [Protocol Document (PDF)](Multiplayer-Scrolling-Shooter-Game/protocol/protocol_document.pdf).
+For detailed information about the game's protocol, please refer to the [Protocol Document (PDF)](Multiplayer-Scrolling-Shooter-Game/protocol/protocol.pdf).
 ## Screenshots
 
 ![Main Menu](Multiplayer-Scrolling-Shooter-Game/pictures/mainmenü.png)  
