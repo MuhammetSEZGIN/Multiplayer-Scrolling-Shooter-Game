@@ -2,7 +2,7 @@
 
 ## Screenshots
 
-![Main Menu](Multiplayer-Scrolling-Shooter-Game/pictures/mainmenu.png)  
+![Main Menu](Multiplayer-Scrolling-Shooter-Game/pictures/mainmenü.png)  
 *Figure 1: Main menu*
 
 ![Info](Multiplayer-Scrolling-Shooter-Game/pictures/infoscreen.png)  
